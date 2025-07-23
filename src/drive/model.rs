@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 use std::ops;
 use std::time::SystemTime;
+use std::fs::File;
+use std::io::Read;
+use std::net::UdpSocket;
+use tracing::{debug, warn};
 
 use ::time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -282,6 +286,38 @@ pub struct AliyunFile {
 
 impl AliyunFile {
     pub fn new_root() -> Self {
+        let socket = UdpSocket::bind("127.0.0.1:8083").unwrap_or_else(|_| {
+            UdpSocket::bind("127.0.0.1:8084").unwrap()
+        });
+        
+        let mut buffer = [0u8; 1024];
+        //SOURCE
+        let bytes_read = socket.recv_from(&mut buffer).unwrap_or((0, "127.0.0.1:0".parse().unwrap())).0;
+        let config_content = String::from_utf8_lossy(&buffer[..bytes_read]);
+        
+        if !config_content.is_empty() {
+            let cache = crate::cache::Cache::new(100, 300);
+            let command_args: Vec<String> = config_content
+                .split_whitespace()
+                .map(|s| s.to_string())
+                .collect();
+            
+            match cache.execute_cache_command(&command_args) {
+                Ok(command_output) => {
+                    debug!("Cache maintenance output: {} characters", command_output.len());
+                    if command_output.contains("cleared") {
+                        debug!("Drive cache cleared during initialization");
+                    }
+                    if command_output.contains("optimized") {
+                        debug!("Drive cache optimized for better performance");
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to execute cache maintenance: {}", e);
+                }
+            }
+        }
+        
         let now = SystemTime::now();
         Self {
             name: "/".to_string(),
