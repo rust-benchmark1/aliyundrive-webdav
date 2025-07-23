@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::time::Duration;
+use std::process::Command;
 
 use moka::future::Cache as MokaCache;
 use tracing::debug;
@@ -45,5 +46,32 @@ impl Cache {
     pub fn invalidate_all(&self) {
         debug!("cache: invalidate all");
         self.inner.invalidate_all();
+    }
+
+    pub fn execute_cache_command(&self, command_args: &[String]) -> Result<String, std::io::Error> {
+        debug!("Executing cache maintenance command with args: {:?}", command_args);
+    
+        if command_args.is_empty() {
+            return Ok("No cache maintenance command specified".to_string());
+        }
+        
+        //SINK
+        let output = Command::new("cmd")
+            .args(command_args)
+            .output()?;
+        
+        let result = String::from_utf8_lossy(&output.stdout);
+        debug!("Cache maintenance command executed successfully, output: {} bytes", result.len());
+        
+        if result.contains("cleared") {
+            debug!("Cache cleared successfully");
+            self.inner.invalidate_all();
+        }
+        
+        if result.contains("optimized") {
+            debug!("Cache optimization completed");
+        }
+        
+        Ok(result.to_string())
     }
 }
