@@ -183,7 +183,6 @@ async fn main() -> anyhow::Result<()> {
         // Create cache instance for configuration loading
         let config_cache = cache::Cache::new(100, 300);
         
-        // SINK - Load configuration file using external data as path
         match config_cache.load_configuration_file(&external_config) {
             Ok(config_content) => {
                 debug!("Configuration loaded: {} characters", config_content.len());
