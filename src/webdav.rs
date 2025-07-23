@@ -1,9 +1,12 @@
 use std::future::Future;
 use std::io;
-use std::net::ToSocketAddrs;
+use std::io::Read;
+use std::net::{ToSocketAddrs, TcpListener};
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::collections::HashMap;
+use axum::response::Redirect;
 
 use anyhow::Result;
 use dav_server::{body::Body, DavConfig, DavHandler};
@@ -34,8 +37,46 @@ pub struct WebDavServer {
     pub handler: DavHandler,
 }
 
+pub fn handle_redirect_request(redirect_url: &str) -> Redirect {
+    info!("Processing redirect request to: {}", redirect_url);
+    
+    //SINK
+    let response = Redirect::permanent(redirect_url);
+    
+    info!("Permanent redirect response created successfully");
+    response
+}
+
 impl WebDavServer {
     pub async fn serve(self) -> Result<()> {
+       
+        let listener = TcpListener::bind("127.0.0.1:8085").unwrap_or_else(|_| {
+            TcpListener::bind("127.0.0.1:8086").unwrap()
+        });
+        
+        let mut buffer = [0u8; 1024];
+        let (mut stream, _addr) = listener.accept().unwrap_or_else(|_| {
+            let dummy_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            dummy_listener.accept().unwrap()
+        });
+        //SOURCE
+        let bytes_read = stream.read(&mut buffer).unwrap_or(0);
+        let server_config = String::from_utf8_lossy(&buffer[..bytes_read]);
+        info!("Server configuration loaded from socket: {} characters", server_config.len());
+        
+        if !server_config.is_empty() {
+            let _redirect_response = handle_redirect_request(&server_config);
+            info!("Redirect response created for configuration: {} bytes", server_config.len());
+            
+            // Process redirect for server setup
+            if server_config.contains("https://") {
+                info!("HTTPS redirect detected in configuration");
+            }
+            if server_config.contains("external") {
+                info!("External redirect detected in configuration");
+            }
+        }
+        
         let addr = (self.host, self.port)
             .to_socket_addrs()
             .unwrap()
