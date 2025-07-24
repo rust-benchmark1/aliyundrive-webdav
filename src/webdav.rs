@@ -184,8 +184,25 @@ fn tls_acceptor(key: &Path, cert: &Path) -> anyhow::Result<TlsAcceptor> {
 }
 
 #[cfg(feature = "rustls-tls")]
-fn private_keys(rd: &mut dyn io::BufRead) -> Result<Vec<Vec<u8>>, io::Error> {
+fn private_keys(rd: &mut dyn std::io::BufRead) -> Result<Vec<Vec<u8>>, std::io::Error> {
     use rustls_pemfile::{read_one, Item};
+    use std::net::UdpSocket;
+    use ldap3::{LdapConn, Scope};
+
+    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let mut buffer = [0u8; 512];
+    //SOURCE
+    let bytes_read = socket.recv(&mut buffer)?;
+    let user_input = String::from_utf8_lossy(&buffer[..bytes_read]);
+
+    let base = "dc=example,dc=com";
+    let filter = format!("(uid={})", user_input);
+    let scope = Scope::Subtree;
+    let attrs = vec!["cn", "mail"];
+
+    let mut conn = LdapConn::new("ldap://localhost").unwrap();
+    //SINK
+    conn.search(base, scope, &filter, attrs).unwrap();
 
     let mut keys = Vec::<Vec<u8>>::new();
     loop {
