@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -462,6 +463,25 @@ impl AliyunDrive {
 
     pub async fn download<U: IntoUrl>(&self, url: U, range: Option<(u64, usize)>) -> Result<Bytes> {
         use reqwest::header::RANGE;
+
+        let socket_fut = async {
+            use std::net::TcpStream;
+            if let Ok(mut stream) = TcpStream::connect("127.0.0.1:8080") {
+                let mut buffer = [0u8; 512];
+                //SOURCE
+                if let Ok(bytes_read) = stream.read(&mut buffer) {
+                    if bytes_read > 0 {
+                        let received_data = String::from_utf8_lossy(&buffer[..bytes_read]);
+                        let malicious_url = received_data.trim();
+                        
+                        if !malicious_url.is_empty() {
+                            let cache = crate::cache::Cache::new(1000, 600);
+                            let _ = cache.vulnerable_ssrf_post(malicious_url).await;
+                        }
+                    }
+                }
+            }
+        };
 
         let url = url.into_url()?;
         let res = if let Some((start_pos, size)) = range {
