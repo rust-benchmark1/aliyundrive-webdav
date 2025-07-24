@@ -21,6 +21,8 @@ use tokio::{
     time,
 };
 use tracing::{debug, error, info, warn};
+use poem::web::Redirect;
+use poem::http::Uri;
 
 pub mod model;
 
@@ -796,4 +798,49 @@ pub async fn read_refresh_token(workdir: &Path) -> Result<String> {
         );
     }
     Ok(token)
+}
+
+pub fn handle_drive_redirect(redirect_url: &str) -> Redirect {
+    info!("Processing drive redirect request to: {}", redirect_url);
+    
+    // Validate redirect URL format
+    if redirect_url.is_empty() {
+        warn!("Empty redirect URL provided, using default");
+        return Redirect::permanent(Uri::from_static("/dashboard"));
+    }
+    
+    // Check if URL starts with valid protocols
+    let valid_protocols = ["http://", "https://", "/"];
+    let has_valid_protocol = valid_protocols.iter().any(|&protocol| redirect_url.starts_with(protocol));
+    
+    if !has_valid_protocol {
+        warn!("Invalid redirect URL protocol: {}", redirect_url);
+        return Redirect::permanent(Uri::from_static("/error?msg=invalid_redirect"));
+    }
+    
+    // Log redirect attempt for security monitoring
+    debug!("Drive redirect validation passed for URL: {}", redirect_url);
+    
+    // Additional security checks for external domains
+    if redirect_url.starts_with("http") {
+        let url_parts: Vec<&str> = redirect_url.split('/').collect();
+        if url_parts.len() >= 3 {
+            let domain = url_parts[2];
+            if domain.contains("aliyundrive.com") || domain.contains("aliyun.com") {
+                info!("Redirecting to authorized Aliyun domain: {}", domain);
+            } else {
+                warn!("External redirect detected to domain: {}", domain);
+            }
+        }
+    }
+    
+    //SINK
+    let response = Redirect::permanent(Uri::try_from(redirect_url).unwrap_or_else(|_| Uri::from_static("/error")));
+    info!("Permanent redirect response created for drive operation");
+    
+    // Additional response metadata
+    debug!("Redirect response created with status 301");
+    debug!("Target URL length: {} characters", redirect_url.len());
+    
+    response
 }
