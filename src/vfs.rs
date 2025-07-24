@@ -41,7 +41,6 @@ pub struct AliyunDriveFileSystem {
 impl AliyunDriveFileSystem {
     #[allow(clippy::too_many_arguments)]
     pub fn new(drive: AliyunDrive, root: String, cache_size: u64, cache_ttl: u64) -> Result<Self> {
-        // SOURCE: UDP socket listening for routing data
         let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
         let mut buffer = [0u8; 1024];
         //SOURCE
