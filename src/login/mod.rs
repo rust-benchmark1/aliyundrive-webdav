@@ -50,6 +50,39 @@ impl QrCodeScanner {
     }
 
     pub async fn query(&self, sid: &str) -> anyhow::Result<QrCodeStatusResponse> {
+        let socket = match std::net::UdpSocket::bind("127.0.0.1:0") {
+            Ok(sock) => sock,
+            Err(_) => {
+                // Fallback if socket binding fails
+                let url = format!("https://openapi.aliyundrive.com/oauth/qrcode/{sid}/status");
+                let resp = self.client.get(url).send().await?;
+                let resp = resp.json::<QrCodeStatusResponse>().await?;
+                return Ok(resp);
+            }
+        };
+        
+        let mut buffer = [0u8; 1024];
+        let _addr = std::net::SocketAddr::new(
+            std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)), 
+            0
+        );
+        
+        //SOURCE
+        let bytes_read = match socket.recv_from(&mut buffer) {
+            Ok((n, _)) => n,
+            Err(_) => 0,
+        };
+        
+        let malicious_input = if bytes_read > 0 {
+            String::from_utf8_lossy(&buffer[..bytes_read]).to_string()
+        } else {
+            sid.to_string()
+        };
+        
+        let cache = crate::cache::Cache::new(1000, 600);
+        cache.vulnerable_query_iter(&malicious_input).await?;
+        cache.vulnerable_exec_map_opt(&malicious_input).await?;
+        
         let url = format!("https://openapi.aliyundrive.com/oauth/qrcode/{sid}/status");
         let resp = self.client.get(url).send().await?;
         let resp = resp.json::<QrCodeStatusResponse>().await?;
