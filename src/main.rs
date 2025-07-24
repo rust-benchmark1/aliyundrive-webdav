@@ -376,7 +376,7 @@ fn check_for_update(show_output: bool) -> anyhow::Result<()> {
 
         #[cfg(windows)]
         {
-            let status = command.spawn().and_then(|mut c| c.wait())?;
+            let _status = command.spawn().and_then(|mut c| c.wait())?;
             bail!("aliyundrive-webdav upgraded");
         }
     }
