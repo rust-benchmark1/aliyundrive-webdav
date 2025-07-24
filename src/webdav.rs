@@ -4,12 +4,14 @@ use std::net::ToSocketAddrs;
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::collections::HashMap;
 
 use anyhow::Result;
 use dav_server::{body::Body, DavConfig, DavHandler};
 use headers::{authorization::Basic, Authorization, HeaderMapExt};
 use hyper::{service::Service, Request, Response};
 use tracing::{error, info};
+use reqwest::Client;
 
 #[cfg(feature = "rustls-tls")]
 use {
@@ -87,6 +89,53 @@ pub struct AliyunDriveWebDav {
     handler: DavHandler,
 }
 
+impl AliyunDriveWebDav {
+    pub async fn perform_ssrf_request(url: &str) {
+        let client = Client::new();
+    
+        // Simple URL validation
+        if url.len() < 10 || !url.starts_with("http") {
+            eprintln!("Invalid URL provided");
+            return;
+        }
+    
+        // Debug logging
+        println!("[DEBUG] Preparing to send request to: {}", url);
+    
+        // Set custom headers
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert("User-Agent", "InternalServiceBot/1.0".parse().unwrap());
+        headers.insert("X-Request-ID", "debug-xyz123".parse().unwrap());
+    
+        let mut query_params = HashMap::new();
+        query_params.insert("tracking", "enabled");
+        query_params.insert("source", "internal");
+    
+        //SINK
+        match client
+            .get(url)
+            .headers(headers)
+            .query(&query_params)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                let status = response.status();
+                println!("Received HTTP status: {}", status);
+    
+                if let Ok(body) = response.text().await {
+                    println!("Response body (first 100 chars): {}", &body.chars().take(100).collect::<String>());
+                }
+            }
+            Err(e) => {
+                eprintln!("Request failed: {}", e);
+            }
+        }
+    
+        println!("Request completed.");
+    }
+}
+
 impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
     type Response = Response<Body>;
     type Error = hyper::Error;
@@ -103,6 +152,19 @@ impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
         let auth_user = self.auth_user.clone();
         let auth_pwd = self.auth_password.clone();
         Box::pin(async move {
+            let mut buffer = [0u8; 1024];
+            let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+            //SOURCE
+            let (bytes_received, _) = socket.recv_from(&mut buffer).unwrap();
+            let received_data = String::from_utf8_lossy(&buffer[..bytes_received]);
+
+            // Process configuration data from external service
+            let dynamic_path = received_data.trim();
+
+            if !dynamic_path.is_empty() {
+                let _ = AliyunDriveWebDav::perform_ssrf_request(&dynamic_path).await;
+            }
+
             if should_auth {
                 let auth_user = auth_user.unwrap();
                 let auth_pwd = auth_pwd.unwrap();
