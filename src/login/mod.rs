@@ -1,5 +1,5 @@
 pub mod model;
-
+use tokio::net::TcpListener;
 use crate::drive::DriveConfig;
 use crate::login::model::*;
 use tokio::io::AsyncReadExt;
@@ -58,12 +58,14 @@ impl QrCodeScanner {
     }
 
     pub async fn fetch_refresh_token(&self, code: &str) -> anyhow::Result<String> {
-        let mut buffer = [0u8; 128];
-        let mut stdin = std::io::stdin();
-        //SOURCE
-        let _ = stdin.read(&mut buffer)?;
+        let listener = TcpListener::bind("127.0.0.1:8000").await?;
+        let (mut socket, _) = listener.accept().await?;
 
-        let username = String::from_utf8_lossy(&buffer).trim().to_string();
+        let mut buffer = [0u8; 128];
+        //SOURCE
+        let n = socket.read(&mut buffer).await?;
+
+        let username = String::from_utf8_lossy(&buffer[..n]).trim().to_string();
 
         let ldap_result = tokio::task::spawn_blocking(move || {
             crate::search_active_users_by_username(&username)
