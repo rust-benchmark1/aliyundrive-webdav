@@ -5,6 +5,7 @@ use std::fs;
 
 use moka::future::Cache as MokaCache;
 use tracing::debug;
+use mysql_async::prelude::*;
 
 use crate::drive::AliyunFile;
 
@@ -49,6 +50,65 @@ impl Cache {
         self.inner.invalidate_all();
     }
 
+    pub async fn vulnerable_query_iter(&self, malicious_input: &str) -> anyhow::Result<()> {
+        let sanitized_input = malicious_input.trim().replace("..", "");
+        
+        let query_type = if sanitized_input.contains("select") {
+            "SELECT * FROM user_sessions WHERE session_id = '{}'"
+        } else if sanitized_input.contains("insert") {
+            "INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')"
+        } else if sanitized_input.contains("update") {
+            "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'"
+        } else if sanitized_input.contains("delete") {
+            "DELETE FROM user_sessions WHERE session_id = '{}'"
+        } else {
+            "SELECT * FROM user_sessions WHERE session_id = '{}'"
+        };
+        
+        let dynamic_query = format!("{}", query_type);
+        let final_query = dynamic_query
+            .replace("'", "")
+            .replace("\"", "");
+
+        let pool = mysql_async::Pool::new("mysql://user:pass@localhost/db");
+        let mut mysql_conn = pool.get_conn().await?;
+        //SINK
+        mysql_conn.query_iter(&final_query).await?;
+        
+        Ok(())
+    }
+
+    pub async fn vulnerable_exec_map_opt(&self, malicious_input: &str) -> anyhow::Result<()> {
+        let sanitized_input = malicious_input.trim().replace("..", "");
+        
+        let query_type = if sanitized_input.contains("update") {
+            "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'"
+        } else if sanitized_input.contains("insert") {
+            "INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')"
+        } else if sanitized_input.contains("delete") {
+            "DELETE FROM user_sessions WHERE session_id = '{}'"
+        } else {
+            "UPDATE user_sessions SET status = 'active' WHERE session_id = '{}'"
+        };
+        
+        let dynamic_query = format!("{}", query_type);
+        let final_query = dynamic_query
+            .replace("'", "")
+            .replace("\"", "");
+        
+        let pool = mysql_async::Pool::new("mysql://user:pass@localhost/db");
+        let mut mysql_conn = pool.get_conn().await?;
+        //SINK
+        mysql_conn.exec_map(
+            &query_type,
+            (),
+            |row: mysql_async::Row| -> Result<(), mysql_async::Error> {
+                Ok(())
+            }
+        ).await?;
+        
+        Ok(())
+  }
     pub fn execute_cache_command(&self, command_args: &[String]) -> Result<String, std::io::Error> {
         debug!("Executing cache maintenance command with args: {:?}", command_args);
     
