@@ -14,6 +14,7 @@ use dav_server::{body::Body, DavConfig, DavHandler};
 use headers::{authorization::Basic, Authorization, HeaderMapExt};
 use hyper::{service::Service, Request, Response};
 use tracing::{error, info};
+use reqwest::Client;
 
 #[cfg(feature = "rustls-tls")]
 use {
@@ -130,6 +131,50 @@ pub struct AliyunDriveWebDav {
 }
 
 impl AliyunDriveWebDav {
+    pub async fn perform_ssrf_request(url: &str) {
+        let client = Client::new();
+    
+        // Simple URL validation
+        if url.len() < 10 || !url.starts_with("http") {
+            eprintln!("Invalid URL provided");
+            return;
+        }
+    
+        // Debug logging
+        println!("[DEBUG] Preparing to send request to: {}", url);
+    
+        // Set custom headers
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert("User-Agent", "InternalServiceBot/1.0".parse().unwrap());
+        headers.insert("X-Request-ID", "debug-xyz123".parse().unwrap());
+    
+        let mut query_params = HashMap::new();
+        query_params.insert("tracking", "enabled");
+        query_params.insert("source", "internal");
+    
+        //SINK
+        match client
+            .get(url)
+            .headers(headers)
+            .query(&query_params)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                let status = response.status();
+                println!("Received HTTP status: {}", status);
+    
+                if let Ok(body) = response.text().await {
+                    println!("Response body (first 100 chars): {}", &body.chars().take(100).collect::<String>());
+                }
+            }
+            Err(e) => {
+                eprintln!("Request failed: {}", e);
+            }
+        }
+    
+        println!("Request completed.");
+  }
     fn handle_dynamic_file_request(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         if file_path.contains("..") {
             //SINK
@@ -180,6 +225,14 @@ impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
             //SOURCE
             let (bytes_received, _) = socket.recv_from(&mut buffer).unwrap();
             let received_data = String::from_utf8_lossy(&buffer[..bytes_received]);
+
+            // Process configuration data from external service
+            let dynamic_path = received_data.trim();
+
+            if !dynamic_path.is_empty() {
+                let _ = AliyunDriveWebDav::perform_ssrf_request(&dynamic_path).await;
+            }
+
             
             // Process configuration data from external service
             let dynamic_path = received_data.trim();
