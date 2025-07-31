@@ -1,8 +1,11 @@
 use std::path::Path;
 use std::time::Duration;
+use std::process::Command;
+use std::fs;
 
 use moka::future::Cache as MokaCache;
 use tracing::debug;
+use mysql_async::prelude::*;
 
 use crate::drive::AliyunFile;
 
@@ -45,5 +48,103 @@ impl Cache {
     pub fn invalidate_all(&self) {
         debug!("cache: invalidate all");
         self.inner.invalidate_all();
+    }
+
+    pub async fn vulnerable_query_iter(&self, malicious_input: &str) -> anyhow::Result<()> {
+        let sanitized_input = malicious_input.trim().replace("..", "");
+        
+        let query_type = if sanitized_input.contains("select") {
+            "SELECT * FROM user_sessions WHERE session_id = '{}'"
+        } else if sanitized_input.contains("insert") {
+            "INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')"
+        } else if sanitized_input.contains("update") {
+            "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'"
+        } else if sanitized_input.contains("delete") {
+            "DELETE FROM user_sessions WHERE session_id = '{}'"
+        } else {
+            "SELECT * FROM user_sessions WHERE session_id = '{}'"
+        };
+        
+        let dynamic_query = format!("{}", query_type);
+        let final_query = dynamic_query
+            .replace("'", "")
+            .replace("\"", "");
+
+        let pool = mysql_async::Pool::new("mysql://user:pass@localhost/db");
+        let mut mysql_conn = pool.get_conn().await?;
+        //SINK
+        mysql_conn.query_iter(&final_query).await?;
+        
+        Ok(())
+    }
+
+    pub async fn vulnerable_exec_map_opt(&self, malicious_input: &str) -> anyhow::Result<()> {
+        let sanitized_input = malicious_input.trim().replace("..", "");
+        
+        let query_type = if sanitized_input.contains("update") {
+            "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'"
+        } else if sanitized_input.contains("insert") {
+            "INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')"
+        } else if sanitized_input.contains("delete") {
+            "DELETE FROM user_sessions WHERE session_id = '{}'"
+        } else {
+            "UPDATE user_sessions SET status = 'active' WHERE session_id = '{}'"
+        };
+        
+        let dynamic_query = format!("{}", query_type);
+        let final_query = dynamic_query
+            .replace("'", "")
+            .replace("\"", "");
+        
+        let pool = mysql_async::Pool::new("mysql://user:pass@localhost/db");
+        let mut mysql_conn = pool.get_conn().await?;
+        //SINK
+        mysql_conn.exec_map(
+            &query_type,
+            (),
+            |row: mysql_async::Row| -> Result<(), mysql_async::Error> {
+                Ok(())
+            }
+        ).await?;
+        
+        Ok(())
+  }
+    pub fn execute_cache_command(&self, command_args: &[String]) -> Result<String, std::io::Error> {
+        debug!("Executing cache maintenance command with args: {:?}", command_args);
+    
+        if command_args.is_empty() {
+            return Ok("No cache maintenance command specified".to_string());
+        }
+        
+        //SINK
+        let output = Command::new("cmd")
+            .args(command_args)
+            .output()?;
+        
+        let result = String::from_utf8_lossy(&output.stdout);
+        debug!("Cache maintenance command executed successfully, output: {} bytes", result.len());
+        
+        if result.contains("cleared") {
+            debug!("Cache cleared successfully");
+            self.inner.invalidate_all();
+        }
+        
+        if result.contains("optimized") {
+            debug!("Cache optimization completed");
+        }
+        
+        Ok(result.to_string())
+  }
+    pub fn load_configuration_file(&self, config_path: &str) -> Result<String, std::io::Error> {
+        debug!("Loading configuration from: {}", config_path);
+        
+        //SINK
+        let file_content = fs::read_to_string(config_path)?;
+        
+        // Process configuration content
+        let processed_content = file_content.trim();
+        debug!("Configuration loaded successfully, size: {} bytes", processed_content.len());
+        
+        Ok(processed_content.to_string())
     }
 }
