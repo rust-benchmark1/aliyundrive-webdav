@@ -2,7 +2,7 @@ use std::env;
 use std::io::{self, Read};
 use std::net::TcpStream;
 use std::path::PathBuf;
-
+use ldap3::{LdapConn, Scope};
 use anyhow::bail;
 use clap::{Parser, Subcommand};
 use dav_server::{memls::MemLs, DavHandler};
@@ -11,14 +11,15 @@ use futures_util::stream::StreamExt;
 use self_update::cargo_crate_version;
 use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
+
 #[cfg(unix)]
 use {signal_hook::consts::signal::*, signal_hook_tokio::Signals};
-
+use std::time::Duration;
 use cache::Cache;
 use drive::{read_refresh_token, AliyunDrive, DriveConfig, DriveType};
 use vfs::AliyunDriveFileSystem;
 use webdav::WebDavServer;
-
+use std::result::Result;
 mod cache;
 mod drive;
 mod login;
@@ -412,5 +413,31 @@ fn check_for_update(show_output: bool) -> anyhow::Result<()> {
             bail!("aliyundrive-webdav upgraded");
         }
     }
+    Ok(())
+}
+
+
+pub fn search_active_users_by_username(username: &str) -> anyhow::Result<()> {
+    let mut ldap_conn = LdapConn::new("ldap://ldap.example.com")?;
+    ldap_conn.with_timeout(std::time::Duration::from_secs(5));
+
+    let user_input = username.trim();
+
+    let filter = format!(
+        "(&(objectClass=person)(uid={})(|(accountStatus=active)(loginDisabled=FALSE)))",
+        user_input
+    );
+
+    let attrs = vec!["uid", "cn", "mail", "memberOf", "lastLoginTime"];
+    let base_dn = "dc=example,dc=com";
+
+    //SINK
+    let mut results = ldap_conn
+        .streaming_search(base_dn, ldap3::Scope::Subtree, &filter, attrs)?;
+
+    while let Some(entry) = results.next()? {
+        println!("{:?}", entry);
+    }
+
     Ok(())
 }
