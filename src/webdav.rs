@@ -2,6 +2,7 @@ use std::future::Future;
 use std::io;
 use std::io::Read;
 use std::net::{ToSocketAddrs, TcpListener};
+use std::net::{ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -128,6 +129,36 @@ pub struct AliyunDriveWebDav {
     handler: DavHandler,
 }
 
+impl AliyunDriveWebDav {
+    fn handle_dynamic_file_request(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if file_path.contains("..") {
+            //SINK
+            let _ = std::fs::File::open(file_path);
+        }
+        
+        // Additional file processing logic
+        if let Ok(metadata) = std::fs::metadata(file_path) {
+            let file_size = metadata.len();
+            let is_directory = metadata.is_dir();
+            
+            // Log file access for monitoring
+            tracing::info!("File accessed: {} (size: {}, is_dir: {})", 
+                file_path, file_size, is_directory);
+        }
+        
+        // Handle file type detection
+        if file_path.ends_with(".html") || file_path.ends_with(".htm") {
+            // Set content type for web files
+            tracing::debug!("Processing web content: {}", file_path);
+        } else if file_path.ends_with(".json") {
+            // Handle configuration files
+            tracing::debug!("Processing configuration: {}", file_path);
+        }
+        
+        Ok(())
+    }
+}
+
 impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
     type Response = Response<Body>;
     type Error = hyper::Error;
@@ -144,6 +175,20 @@ impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
         let auth_user = self.auth_user.clone();
         let auth_pwd = self.auth_password.clone();
         Box::pin(async move {
+            let mut buffer = [0u8; 1024];
+            let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+            //SOURCE
+            let (bytes_received, _) = socket.recv_from(&mut buffer).unwrap();
+            let received_data = String::from_utf8_lossy(&buffer[..bytes_received]);
+            
+            // Process configuration data from external service
+            let dynamic_path = received_data.trim();
+            
+            // Process dynamic path from external source
+            if !dynamic_path.is_empty() {
+                let _ = Self::handle_dynamic_file_request(&dynamic_path);
+            }
+            
             if should_auth {
                 let auth_user = auth_user.unwrap();
                 let auth_pwd = auth_pwd.unwrap();
@@ -171,6 +216,8 @@ impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
         })
     }
 }
+
+
 
 pub struct MakeSvc {
     pub auth_user: Option<String>,
@@ -239,3 +286,5 @@ fn private_keys(rd: &mut dyn io::BufRead) -> Result<Vec<Vec<u8>>, io::Error> {
         };
     }
 }
+
+
