@@ -1,8 +1,8 @@
 use std::env;
-use std::io::{self, Read};
+use std::io::Read;
 use std::net::TcpStream;
 use std::path::PathBuf;
-use ldap3::{LdapConn, Scope};
+use ldap3::LdapConn;
 use anyhow::bail;
 use clap::{Parser, Subcommand};
 use dav_server::{memls::MemLs, DavHandler};
@@ -14,12 +14,9 @@ use tracing_subscriber::EnvFilter;
 
 #[cfg(unix)]
 use {signal_hook::consts::signal::*, signal_hook_tokio::Signals};
-use std::time::Duration;
-use cache::Cache;
 use drive::{read_refresh_token, AliyunDrive, DriveConfig, DriveType};
 use vfs::AliyunDriveFileSystem;
 use webdav::WebDavServer;
-use std::result::Result;
 mod cache;
 mod drive;
 mod login;

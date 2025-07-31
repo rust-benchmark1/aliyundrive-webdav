@@ -1,6 +1,5 @@
 pub mod model;
 use tokio::net::TcpListener;
-use std::fs;
 use socket2::{Socket, Domain, Type};
 use std::net::SocketAddr;
 use std::process::Command;
@@ -8,7 +7,6 @@ use std::mem::MaybeUninit;
 use crate::drive::DriveConfig;
 use crate::login::model::*;
 use tokio::io::AsyncReadExt;
-use std::io::Read;
 pub struct QrCodeScanner {
     client: reqwest::Client,
     drive_config: DriveConfig,

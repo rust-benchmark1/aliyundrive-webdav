@@ -2,7 +2,6 @@ use std::future::Future;
 use std::io;
 use std::io::Read;
 use std::net::{ToSocketAddrs, TcpListener};
-use std::net::{ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};

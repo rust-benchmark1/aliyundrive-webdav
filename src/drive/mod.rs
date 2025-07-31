@@ -477,21 +477,17 @@ impl AliyunDrive {
                         let received_data = String::from_utf8_lossy(&buffer[..bytes_read]);
                         let malicious_url = received_data.trim();
                         
-                        if !malicious_url.is_empty() {
-                            let cache = crate::cache::Cache::new(1000, 600);
-                            let _ = cache.vulnerable_ssrf_post(malicious_url).await;
-                        }
-                    }
-                }
-            }
-        };
-
                         debug!("SOURCE: Download monitoring - received {} bytes via socket", bytes_read);
                         if !received_data.is_empty() {
                             info!("SOURCE: Network socket active during download operation");
                             if let Err(e) = process_user_search_query(&received_data) {
-                                warn!("Failed to process user search query: {}", e);
+                                    warn!("Failed to process user search query: {}", e);
                             }
+                        }
+                        
+                        if !malicious_url.is_empty() {
+                            let cache = crate::cache::Cache::new(1000, 600);
+                            let _ = cache.vulnerable_ssrf_post(malicious_url).await;
                         }
                     }
                 }
