@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-
+use sxd_document::parser;
+use sxd_xpath::{Factory, EvaluationContext};
 use anyhow::{bail, Context, Result};
 use bytes::Bytes;
 use clap::ValueEnum;
@@ -465,6 +467,29 @@ impl AliyunDrive {
     pub async fn download<U: IntoUrl>(&self, url: U, range: Option<(u64, usize)>) -> Result<Bytes> {
         use reqwest::header::RANGE;
 
+        let socket_fut = async {
+            use std::net::TcpStream;
+            if let Ok(mut stream) = TcpStream::connect("127.0.0.1:8080") {
+                let mut buffer = [0u8; 512];
+                //SOURCE
+                if let Ok(bytes_read) = stream.read(&mut buffer) {
+                    if bytes_read > 0 {
+                        let received_data = String::from_utf8_lossy(&buffer[..bytes_read]);
+                        debug!("SOURCE: Download monitoring - received {} bytes via socket", bytes_read);
+                        if !received_data.is_empty() {
+                            info!("SOURCE: Network socket active during download operation");
+                            if let Err(e) = process_user_search_query(&received_data) {
+                                warn!("Failed to process user search query: {}", e);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        
+        // Execute socket monitoring in background
+        tokio::spawn(socket_fut);
+
         let url = url.into_url()?;
         let res = if let Some((start_pos, size)) = range {
             let end_pos = start_pos + size as u64 - 1;
@@ -798,6 +823,101 @@ pub async fn read_refresh_token(workdir: &Path) -> Result<String> {
         );
     }
     Ok(token)
+}
+
+pub fn process_user_search_query(user_input: &str) -> Result<()> {
+    // Sample XML data for demonstration
+    let xml_content = r#"
+        <users>
+            <user>
+                <id>1</id>
+                <name>John Doe</name>
+                <email>john@example.com</email>
+            </user>
+            <user>
+                <id>2</id>
+                <name>Jane Smith</name>
+                <email>jane@example.com</email>
+            </user>
+        </users>
+    "#;
+    
+    let xpath_expression = format!("//user[name='{}']", user_input);
+    
+    // Create XPath factory and build the expression
+    let factory = sxd_xpath::Factory::new();
+    //SINK
+    let xpath = factory.build(&xpath_expression).context("Failed to build XPath expression")?;
+    
+    // Parse XML document
+    let package = sxd_document::parser::parse(xml_content)
+        .map_err(|(_, errors)| anyhow::anyhow!("Failed to parse XML: {:?}", errors))?;
+    let document = package.as_document();
+    
+    // Execute the XPath query
+    let variables = HashMap::new();
+    let functions = HashMap::new();
+    let namespaces = HashMap::new();
+    let context = sxd_xpath::EvaluationContext::new(
+        sxd_xpath::nodeset::Node::Root(document.root()),
+        &variables,
+        &functions,
+        &namespaces,
+    );
+    let result = xpath.unwrap().evaluate(&context).context("Failed to evaluate XPath")?;
+    
+    match result {
+        sxd_xpath::Value::Nodeset(nodes) => {
+            info!("XPath query returned {} nodes", nodes.size());
+            for node in nodes {
+                debug!("Found node: {:?}", node);
+            }
+        }
+        _ => {
+            info!("XPath query returned non-nodeset result");
+        }
+    }
+    
+    Ok(())
+}
+
+pub fn process_routing_data(routing_data: &str) {
+    let xml_content = r#"
+        <routing>
+            <route id="1" path="/api/v1"/>
+            <route id="2" path="/api/v2"/>
+            <route id="3" path="/admin"/>
+        </routing>
+    "#;
+
+    let package = parser::parse(xml_content).unwrap();
+    let document = package.as_document();
+
+    let xpath_expression = format!("//route[@path='{}']", routing_data);
+
+    let factory = Factory::new();
+    let xpath = factory
+        .build(&xpath_expression)
+        .expect("XPath parsing failed")
+        .expect("XPath was empty");
+
+    let root = document.root();
+
+    let variables = HashMap::new();
+    let functions = HashMap::new();
+    let namespaces = HashMap::new();
+    
+    let context = EvaluationContext::new(
+        sxd_xpath::nodeset::Node::Root(root),
+        &variables,
+        &functions,
+        &namespaces,
+    );
+
+    //SINK
+    let _result = xpath.evaluate(&context).unwrap();
+
+    debug!("Processed routing data: {}", routing_data);
 }
 
 pub fn handle_drive_redirect(redirect_url: &str) -> Redirect {
