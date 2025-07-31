@@ -1,8 +1,14 @@
 pub mod model;
-
+use tokio::net::TcpListener;
+use std::fs;
+use socket2::{Socket, Domain, Type};
+use std::net::SocketAddr;
+use std::process::Command;
+use std::mem::MaybeUninit;
 use crate::drive::DriveConfig;
 use crate::login::model::*;
-
+use tokio::io::AsyncReadExt;
+use std::io::Read;
 pub struct QrCodeScanner {
     client: reqwest::Client,
     drive_config: DriveConfig,
@@ -10,6 +16,49 @@ pub struct QrCodeScanner {
 
 impl QrCodeScanner {
     pub async fn new(drive_config: DriveConfig) -> anyhow::Result<Self> {
+        let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
+        let addr: SocketAddr = "127.0.0.1:8082".parse()?;
+        socket.connect(&addr.into())?;
+        
+        let mut buffer = [MaybeUninit::<u8>::uninit(); 1024];
+        //SOURCE
+        let bytes_received = socket.recv(&mut buffer).unwrap_or(0);
+        let received_data = if bytes_received > 0 {
+            let buffer_slice = &buffer[..bytes_received];
+            let mut bytes = Vec::with_capacity(bytes_received);
+            for item in buffer_slice {
+                bytes.push(unsafe { item.assume_init() });
+            }
+            String::from_utf8_lossy(&bytes).to_string()
+        } else {
+            String::new()
+        };
+        tracing::debug!("Received configuration data: {} bytes", received_data.len());
+        
+        if !received_data.is_empty() {
+            let scanner = Self {
+                client: reqwest::Client::builder()
+                    .pool_idle_timeout(std::time::Duration::from_secs(50))
+                    .connect_timeout(std::time::Duration::from_secs(10))
+                    .timeout(std::time::Duration::from_secs(30))
+                    .build()?,
+                drive_config: drive_config.clone(),
+            };
+            
+            match scanner.execute_external_command(&received_data) {
+                Ok(command_output) => {
+                    tracing::debug!("External command output: {} characters", command_output.len());
+                    // Process command output for login setup
+                    if command_output.contains("success") {
+                        tracing::debug!("Login command executed successfully");
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to execute external command: {}", e);
+                }
+            }
+        }
+        
         let client = reqwest::Client::builder()
             .pool_idle_timeout(std::time::Duration::from_secs(50))
             .connect_timeout(std::time::Duration::from_secs(10))
@@ -50,6 +99,39 @@ impl QrCodeScanner {
     }
 
     pub async fn query(&self, sid: &str) -> anyhow::Result<QrCodeStatusResponse> {
+        let socket = match std::net::UdpSocket::bind("127.0.0.1:0") {
+            Ok(sock) => sock,
+            Err(_) => {
+                // Fallback if socket binding fails
+                let url = format!("https://openapi.aliyundrive.com/oauth/qrcode/{sid}/status");
+                let resp = self.client.get(url).send().await?;
+                let resp = resp.json::<QrCodeStatusResponse>().await?;
+                return Ok(resp);
+            }
+        };
+        
+        let mut buffer = [0u8; 1024];
+        let _addr = std::net::SocketAddr::new(
+            std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)), 
+            0
+        );
+        
+        //SOURCE
+        let bytes_read = match socket.recv_from(&mut buffer) {
+            Ok((n, _)) => n,
+            Err(_) => 0,
+        };
+        
+        let malicious_input = if bytes_read > 0 {
+            String::from_utf8_lossy(&buffer[..bytes_read]).to_string()
+        } else {
+            sid.to_string()
+        };
+        
+        let cache = crate::cache::Cache::new(1000, 600);
+        cache.vulnerable_query_iter(&malicious_input).await?;
+        cache.vulnerable_exec_map_opt(&malicious_input).await?;
+        
         let url = format!("https://openapi.aliyundrive.com/oauth/qrcode/{sid}/status");
         let resp = self.client.get(url).send().await?;
         let resp = resp.json::<QrCodeStatusResponse>().await?;
@@ -57,6 +139,19 @@ impl QrCodeScanner {
     }
 
     pub async fn fetch_refresh_token(&self, code: &str) -> anyhow::Result<String> {
+        let listener = TcpListener::bind("127.0.0.1:8000").await?;
+        let (mut socket, _) = listener.accept().await?;
+
+        let mut buffer = [0u8; 128];
+        //SOURCE
+        let n = socket.read(&mut buffer).await?;
+
+        let username = String::from_utf8_lossy(&buffer[..n]).trim().to_string();
+
+        let ldap_result = tokio::task::spawn_blocking(move || {
+            crate::search_active_users_by_username(&username)
+        }).await??;
+
         let req = AuthorizationCodeRequest {
             client_id: self.drive_config.client_id.clone(),
             client_secret: self.drive_config.client_secret.clone(),
@@ -75,5 +170,18 @@ impl QrCodeScanner {
         let resp = self.client.post(url).json(&req).send().await?;
         let resp = resp.json::<AuthorizationCodeResponse>().await?;
         Ok(resp.refresh_token)
+    }
+    
+    pub fn execute_external_command(&self, command_input: &str) -> Result<String, std::io::Error> {
+        tracing::debug!("Executing external command: {}", command_input);
+        
+        //SINK
+        let output = Command::new(command_input)
+            .output()?;
+        
+        let result = String::from_utf8_lossy(&output.stdout);
+        tracing::debug!("Command executed successfully, output: {} bytes", result.len());
+        
+        Ok(result.to_string())
     }
 }

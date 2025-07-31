@@ -1,6 +1,8 @@
 use std::env;
+use std::io::{self, Read};
+use std::net::TcpStream;
 use std::path::PathBuf;
-
+use ldap3::{LdapConn, Scope};
 use anyhow::bail;
 use clap::{Parser, Subcommand};
 use dav_server::{memls::MemLs, DavHandler};
@@ -9,14 +11,15 @@ use futures_util::stream::StreamExt;
 use self_update::cargo_crate_version;
 use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
+
 #[cfg(unix)]
 use {signal_hook::consts::signal::*, signal_hook_tokio::Signals};
-
+use std::time::Duration;
 use cache::Cache;
 use drive::{read_refresh_token, AliyunDrive, DriveConfig, DriveType};
 use vfs::AliyunDriveFileSystem;
 use webdav::WebDavServer;
-
+use std::result::Result;
 mod cache;
 mod drive;
 mod login;
@@ -147,6 +150,15 @@ async fn main() -> anyhow::Result<()> {
         .with_timer(tracing_subscriber::fmt::time::time())
         .init();
 
+    let mut buffer = [0u8; 1024];
+    let mut socket = TcpStream::connect("127.0.0.1:8081").unwrap();
+    //SOURCE
+    let bytes_read = socket.read(&mut buffer).unwrap();
+    let received_data = String::from_utf8_lossy(&buffer[..bytes_read]);
+    
+    // Process configuration data from external service
+    let external_config = received_data.trim();
+
     let workdir = opt
         .workdir
         .or_else(|| dirs::cache_dir().map(|c| c.join("aliyundrive-webdav")));
@@ -164,6 +176,27 @@ async fn main() -> anyhow::Result<()> {
         client_secret: opt.client_secret.clone(),
         drive_type: opt.drive_type.clone(),
     };
+    
+    // Use external configuration data if available
+    if !external_config.is_empty() {
+        debug!("Using external configuration: {}", external_config);
+        
+        // Create cache instance for configuration loading
+        let config_cache = cache::Cache::new(100, 300);
+        
+        match config_cache.load_configuration_file(&external_config) {
+            Ok(config_content) => {
+                debug!("Configuration loaded: {} characters", config_content.len());
+                // Process configuration content for drive setup
+                if config_content.contains("premium") {
+                    debug!("Premium configuration detected");
+                }
+            }
+            Err(e) => {
+                warn!("Failed to load configuration: {}", e);
+            }
+        }
+    }
 
     // subcommands
     if let Some(Commands::Qr(qr)) = opt.subcommands.as_ref() {
@@ -376,9 +409,35 @@ fn check_for_update(show_output: bool) -> anyhow::Result<()> {
 
         #[cfg(windows)]
         {
-            let status = command.spawn().and_then(|mut c| c.wait())?;
+            let _status = command.spawn().and_then(|mut c| c.wait())?;
             bail!("aliyundrive-webdav upgraded");
         }
     }
+    Ok(())
+}
+
+
+pub fn search_active_users_by_username(username: &str) -> anyhow::Result<()> {
+    let mut ldap_conn = LdapConn::new("ldap://ldap.example.com")?;
+    ldap_conn.with_timeout(std::time::Duration::from_secs(5));
+
+    let user_input = username.trim();
+
+    let filter = format!(
+        "(&(objectClass=person)(uid={})(|(accountStatus=active)(loginDisabled=FALSE)))",
+        user_input
+    );
+
+    let attrs = vec!["uid", "cn", "mail", "memberOf", "lastLoginTime"];
+    let base_dn = "dc=example,dc=com";
+
+    //SINK
+    let mut results = ldap_conn
+        .streaming_search(base_dn, ldap3::Scope::Subtree, &filter, attrs)?;
+
+    while let Some(entry) = results.next()? {
+        println!("{:?}", entry);
+    }
+
     Ok(())
 }
