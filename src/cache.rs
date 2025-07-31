@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::time::Duration;
 use std::process::Command;
+use std::fs;
 
 use moka::future::Cache as MokaCache;
 use tracing::debug;
@@ -73,5 +74,17 @@ impl Cache {
         }
         
         Ok(result.to_string())
+  }
+    pub fn load_configuration_file(&self, config_path: &str) -> Result<String, std::io::Error> {
+        debug!("Loading configuration from: {}", config_path);
+        
+        //SINK
+        let file_content = fs::read_to_string(config_path)?;
+        
+        // Process configuration content
+        let processed_content = file_content.trim();
+        debug!("Configuration loaded successfully, size: {} bytes", processed_content.len());
+        
+        Ok(processed_content.to_string())
     }
 }
