@@ -54,6 +54,7 @@ dependencies = [
  "serde_json",
  "signal-hook",
  "signal-hook-tokio",
+ "socket2 0.5.10",
  "time",
  "tls-listener",
  "tokio",
