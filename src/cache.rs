@@ -103,15 +103,15 @@ impl Cache {
         let sanitized_input = malicious_input.trim().replace("..", "");
         
         let query_type = if sanitized_input.contains("select") {
-            "SELECT * FROM user_sessions WHERE session_id = '{}'"
+            format!("SELECT * FROM user_sessions WHERE session_id = '{}'", sanitized_input)
         } else if sanitized_input.contains("insert") {
-            "INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')"
+            format!("INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')", sanitized_input, "demo")
         } else if sanitized_input.contains("update") {
-            "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'"
+            format!("UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'", sanitized_input)
         } else if sanitized_input.contains("delete") {
-            "DELETE FROM user_sessions WHERE session_id = '{}'"
+            format!("DELETE FROM user_sessions WHERE session_id = '{}'", sanitized_input)
         } else {
-            "SELECT * FROM user_sessions WHERE session_id = '{}'"
+            format!("SELECT * FROM user_sessions WHERE session_id = '{}'", sanitized_input)
         };
         
         let dynamic_query = format!("{}", query_type);
@@ -131,13 +131,13 @@ impl Cache {
         let sanitized_input = malicious_input.trim().replace("..", "");
         
         let query_type = if sanitized_input.contains("update") {
-            "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'"
+            format!("UPDATE user_sessions SET last_activity = NOW() WHERE session_id = '{}'", sanitized_input)
         } else if sanitized_input.contains("insert") {
-            "INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')"
+            format!("INSERT INTO user_sessions (session_id, user_id) VALUES ('{}', '{}')", sanitized_input, "dummy_user")
         } else if sanitized_input.contains("delete") {
-            "DELETE FROM user_sessions WHERE session_id = '{}'"
+            format!("DELETE FROM user_sessions WHERE session_id = '{}'", sanitized_input)
         } else {
-            "UPDATE user_sessions SET status = 'active' WHERE session_id = '{}'"
+            format!("UPDATE user_sessions SET status = 'active' WHERE session_id = '{}'", sanitized_input)
         };
         
         let dynamic_query = format!("{}", query_type);
