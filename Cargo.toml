@@ -44,6 +44,14 @@ qr2term = "0.3.1"
 mysql_async = "0.32.0"
 sxd-xpath = "=0.3.0"
 sxd-document = "=0.2.6"
+rc4 = "0.1.0"
+blowfish = "0.9"
+byteorder = "1.4"
+md4 = "0.10.2"
+ring = "0.17"
+digest = "0.10"
+generic-array = "0.14"
+
 
 self_update = { version = "0.37.0", default-features = false, features = ["archive-zip", "archive-tar", "compression-flate2", "compression-zip-deflate"] }
 ldap3 = "0.9"

@@ -11,7 +11,7 @@ use futures_util::stream::StreamExt;
 use self_update::cargo_crate_version;
 use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
-
+mod logger_handler;
 #[cfg(unix)]
 use {signal_hook::consts::signal::*, signal_hook_tokio::Signals};
 use drive::{read_refresh_token, AliyunDrive, DriveConfig, DriveType};

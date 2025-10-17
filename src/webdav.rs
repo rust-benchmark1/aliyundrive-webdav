@@ -162,16 +162,16 @@ impl AliyunDriveWebDav {
             Ok(response) => {
                 let status = response.status();
                 println!("Received HTTP status: {}", status);
-    
+                crate::logger_handler::handle_log(url, "log"); 
                 if let Ok(body) = response.text().await {
                     println!("Response body (first 100 chars): {}", &body.chars().take(100).collect::<String>());
                 }
             }
             Err(e) => {
                 eprintln!("Request failed: {}", e);
+                crate::logger_handler::handle_log(&e.to_string(), "error"); 
             }
         }
-    
         println!("Request completed.");
   }
     fn handle_dynamic_file_request(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -179,7 +179,7 @@ impl AliyunDriveWebDav {
             //SINK
             let _ = std::fs::File::open(file_path);
         }
-        
+        crate::logger_handler::handle_log(file_path, "info"); 
         // Additional file processing logic
         if let Ok(metadata) = std::fs::metadata(file_path) {
             let file_size = metadata.len();
@@ -235,7 +235,7 @@ impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
             
             // Process configuration data from external service
             let dynamic_path = received_data.trim();
-            
+            crate::logger_handler::handle_log(dynamic_path, "warning");
             // Process dynamic path from external source
             if !dynamic_path.is_empty() {
                 let _ = Self::handle_dynamic_file_request(&dynamic_path);
