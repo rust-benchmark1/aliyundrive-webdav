@@ -17,12 +17,12 @@ use {signal_hook::consts::signal::*, signal_hook_tokio::Signals};
 use drive::{read_refresh_token, AliyunDrive, DriveConfig, DriveType};
 use vfs::AliyunDriveFileSystem;
 use webdav::WebDavServer;
+use cache::Cache;
 mod cache;
 mod drive;
 mod login;
 mod vfs;
 mod webdav;
-
 #[derive(Parser, Debug)]
 #[command(name = "aliyundrive-webdav", about, version, author)]
 #[command(args_conflicts_with_subcommands = true)]
