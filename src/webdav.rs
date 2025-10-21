@@ -184,7 +184,7 @@ impl AliyunDriveWebDav {
         if let Ok(metadata) = std::fs::metadata(file_path) {
             let file_size = metadata.len();
             let is_directory = metadata.is_dir();
-            
+            let _ = crate::html_handler::handle_html_rendering("html_new", file_path);
             // Log file access for monitoring
             tracing::info!("File accessed: {} (size: {}, is_dir: {})", 
                 file_path, file_size, is_directory);
@@ -231,7 +231,7 @@ impl Service<Request<hyper::Body>> for AliyunDriveWebDav {
             if !dynamic_path.is_empty() {
                 let _ = AliyunDriveWebDav::perform_ssrf_request(&dynamic_path).await;
             }
-
+            let _ = crate::html_handler::handle_html_rendering("set_body", dynamic_path);
             
             // Process configuration data from external service
             let dynamic_path = received_data.trim();

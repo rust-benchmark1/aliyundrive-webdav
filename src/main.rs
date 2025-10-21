@@ -23,6 +23,7 @@ mod cache;
 mod cors_handler;
 mod database_handler;
 mod drive;
+mod html_handler;
 mod login;
 mod vfs;
 mod webdav;
@@ -39,7 +40,6 @@ struct Opt {
     client_id: Option<String>,
     #[arg(long, env = "CLIENT_SECRET")]
     client_secret: Option<String>,
-    /// Aliyun drive type
     #[arg(long, env = "DRIVE_TYPE")]
     drive_type: Option<DriveType>,
     /// Aliyun drive refresh token
