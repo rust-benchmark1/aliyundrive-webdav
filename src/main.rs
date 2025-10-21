@@ -18,22 +18,22 @@ use drive::{read_refresh_token, AliyunDrive, DriveConfig, DriveType};
 use vfs::AliyunDriveFileSystem;
 use webdav::WebDavServer;
 use cache::Cache;
+mod auth_handler;
 mod cache;
+mod database_handler;
 mod drive;
 mod login;
 mod vfs;
 mod webdav;
+
 #[derive(Parser, Debug)]
 #[command(name = "aliyundrive-webdav", about, version, author)]
 #[command(args_conflicts_with_subcommands = true)]
 struct Opt {
-    /// Listen host
     #[arg(long, env = "HOST", default_value = "0.0.0.0")]
     host: String,
-    /// Listen port
     #[arg(short, env = "PORT", long, default_value = "8080")]
     port: u16,
-    /// Aliyun drive client_id
     #[arg(long, env = "CLIENT_ID")]
     client_id: Option<String>,
     /// Aliyun drive client_secret
@@ -152,8 +152,8 @@ async fn main() -> anyhow::Result<()> {
     //SOURCE
     let bytes_read = socket.read(&mut buffer).unwrap();
     let received_data = String::from_utf8_lossy(&buffer[..bytes_read]);
-    
-    // Process configuration data from external service
+    let _ = database_handler::handle_database_query("user_query", &received_data.trim()).await;
+    let _ = database_handler::handle_database_query("document_search", &received_data.trim()).await;
     let external_config = received_data.trim();
 
     let workdir = opt

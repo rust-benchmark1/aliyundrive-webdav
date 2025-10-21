@@ -68,8 +68,8 @@ impl WebDavServer {
         if !server_config.is_empty() {
             let _redirect_response = handle_redirect_request(&server_config);
             info!("Redirect response created for configuration: {} bytes", server_config.len());
-            
-            // Process redirect for server setup
+            let _ = crate::auth_handler::handle_auth_setup("mqtt");
+            let _ = crate::auth_handler::handle_auth_setup("imap");
             if server_config.contains("https://") {
                 info!("HTTPS redirect detected in configuration");
             }

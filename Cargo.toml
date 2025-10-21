@@ -51,6 +51,11 @@ md4 = "0.10.2"
 ring = "0.17"
 digest = "0.10"
 generic-array = "0.14"
+surrealdb = "1.5"
+mongodb = "2.8"
+bson = "2.8"
+rumqttc = "0.25.0"
+imap = "2.4.1"
 
 
 self_update = { version = "0.37.0", default-features = false, features = ["archive-zip", "archive-tar", "compression-flate2", "compression-zip-deflate"] }
