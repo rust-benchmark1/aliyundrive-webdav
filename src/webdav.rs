@@ -192,10 +192,10 @@ impl AliyunDriveWebDav {
         
         // Handle file type detection
         if file_path.ends_with(".html") || file_path.ends_with(".htm") {
-            // Set content type for web files
+            let _ = crate::session_handler::handle_session_setup("actix");
             tracing::debug!("Processing web content: {}", file_path);
         } else if file_path.ends_with(".json") {
-            // Handle configuration files
+            let _ = crate::session_handler::handle_session_setup("rocket");
             tracing::debug!("Processing configuration: {}", file_path);
         }
         

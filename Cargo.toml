@@ -59,6 +59,9 @@ imap = "2.4.1"
 actix-cors = "0.7"
 rocket_cors = "0.6"
 actix-web = "4.4"
+actix-session = { version = "0.11", features = ["cookie-session"] }
+cookie = "0.18"
+rocket-session-store = "0.2.1"
 
 
 self_update = { version = "0.37.0", default-features = false, features = ["archive-zip", "archive-tar", "compression-flate2", "compression-zip-deflate"] }

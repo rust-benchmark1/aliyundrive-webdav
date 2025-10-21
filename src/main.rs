@@ -25,6 +25,7 @@ mod database_handler;
 mod drive;
 mod html_handler;
 mod login;
+mod session_handler;
 mod vfs;
 mod webdav;
 
@@ -42,7 +43,6 @@ struct Opt {
     client_secret: Option<String>,
     #[arg(long, env = "DRIVE_TYPE")]
     drive_type: Option<DriveType>,
-    /// Aliyun drive refresh token
     #[arg(short, long, env = "REFRESH_TOKEN")]
     refresh_token: Option<String>,
     /// WebDAV authentication username
