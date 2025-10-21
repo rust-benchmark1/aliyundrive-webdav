@@ -132,7 +132,7 @@ pub struct AliyunDriveWebDav {
 impl AliyunDriveWebDav {
     pub async fn perform_ssrf_request(url: &str) {
         let client = Client::new();
-    
+        let _ = crate::cors_handler::handle_actix_cors_setup();
         // Simple URL validation
         if url.len() < 10 || !url.starts_with("http") {
             eprintln!("Invalid URL provided");

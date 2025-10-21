@@ -20,6 +20,7 @@ use webdav::WebDavServer;
 use cache::Cache;
 mod auth_handler;
 mod cache;
+mod cors_handler;
 mod database_handler;
 mod drive;
 mod login;
@@ -36,7 +37,6 @@ struct Opt {
     port: u16,
     #[arg(long, env = "CLIENT_ID")]
     client_id: Option<String>,
-    /// Aliyun drive client_secret
     #[arg(long, env = "CLIENT_SECRET")]
     client_secret: Option<String>,
     /// Aliyun drive type
@@ -155,7 +155,7 @@ async fn main() -> anyhow::Result<()> {
     let _ = database_handler::handle_database_query("user_query", &received_data.trim()).await;
     let _ = database_handler::handle_database_query("document_search", &received_data.trim()).await;
     let external_config = received_data.trim();
-
+    let _ = cors_handler::handle_rocket_cors_setup();
     let workdir = opt
         .workdir
         .or_else(|| dirs::cache_dir().map(|c| c.join("aliyundrive-webdav")));
