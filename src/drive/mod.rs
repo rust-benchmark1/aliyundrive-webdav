@@ -853,7 +853,6 @@ pub fn process_user_search_query(user_input: &str) -> Result<()> {
     
     // Create XPath factory and build the expression
     let factory = sxd_xpath::Factory::new();
-    //SINK
     let xpath = factory.build(&xpath_expression).context("Failed to build XPath expression")?;
     
     // Parse XML document
@@ -871,6 +870,7 @@ pub fn process_user_search_query(user_input: &str) -> Result<()> {
         &functions,
         &namespaces,
     );
+	//SINK
     let result = xpath.unwrap().evaluate(&context).context("Failed to evaluate XPath")?;
     
     match result {
