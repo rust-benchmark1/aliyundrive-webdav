@@ -45,8 +45,6 @@ impl DatabaseHandler {
         // Construct filter with user input
         let unsafe_json_filter = search_term.replace("'", "");
         
-        //CWE-943
-        //SINK
         let client = Client::with_uri_str("mongodb://127.0.0.1:27017").await.unwrap();
         let db = client.database("example_db");
         let coll: Collection<Document> = db.collection("users");
@@ -61,6 +59,8 @@ impl DatabaseHandler {
             }
         };
         
+        //CWE-943
+        //SINK
         let _ = coll.count_documents(filter_doc, None).await.unwrap();
         
         Ok(format!("Executed filter: {}", unsafe_json_filter))
