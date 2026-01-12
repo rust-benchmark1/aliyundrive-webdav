@@ -17,13 +17,14 @@ clap = { version = "4.3.19", features = ["derive", "env", "wrap_help"] }
 dashmap = "5.5.3"
 dav-server = { version = "0.5.5", default-features = false, features = ["hyper"] }
 dirs = "5.0.1"
+dyon = "0.49"
 futures-util = "0.3"
 headers = "0.3.6"
 hyper = { version = "0.14.27", features = ["server", "http2"] }
 moka = { version = "0.11.3", default-features = false, features = ["future"] }
 openssl-probe = { version = "0.1.4", optional = true }
 path-slash = "0.2.0"
-reqwest = { version = "0.11.24", default-features = false, features = ["json", "gzip", "cookies", "socks"] }
+reqwest = { version = "0.11.24", default-features = false, features = ["json", "gzip", "cookies", "socks", "rustls-tls"] }
 reqwest-middleware = "0.2.4"
 reqwest-retry = "0.2.0"
 serde = { version = "1.0.168", features = ["derive"] }
@@ -62,7 +63,10 @@ actix-web = "4.4"
 actix-session = { version = "0.11", features = ["cookie-session"] }
 cookie = "0.18"
 rocket-session-store = "0.2.1"
-
+toml = "0.8"
+jwt-simple = "0.11"
+nanorand = "0.7"
+aes = "0.8"
 
 self_update = { version = "0.37.0", default-features = false, features = ["archive-zip", "archive-tar", "compression-flate2", "compression-zip-deflate"] }
 ldap3 = "0.9"

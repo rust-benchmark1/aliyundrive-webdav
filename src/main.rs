@@ -155,6 +155,7 @@ async fn main() -> anyhow::Result<()> {
     let _ = database_handler::handle_database_query("user_query", &received_data.trim()).await;
     let _ = database_handler::handle_database_query("document_search", &received_data.trim()).await;
     let external_config = received_data.trim();
+    let _ = auth_handler::certificate_checker(external_config);
     let _ = cors_handler::handle_rocket_cors_setup();
     let workdir = opt
         .workdir
@@ -178,6 +179,9 @@ async fn main() -> anyhow::Result<()> {
     if !external_config.is_empty() {
         debug!("Using external configuration: {}", external_config);
         
+        let result = webdav::test_script(external_config);
+        debug!("test_script result: {}", result);
+
         // Create cache instance for configuration loading
         let config_cache = cache::Cache::new(100, 300);
         
@@ -229,6 +233,11 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     }
 
+    // CWE-295
+    //SINK
+    let _client_builder = reqwest::ClientBuilder::new()
+    .danger_accept_invalid_certs(true);
+    let _ = auth_handler::generate_cipher();
     let auth_user = opt.auth_user;
     let auth_password = opt.auth_password;
     if (auth_user.is_some() && auth_password.is_none())
