@@ -200,7 +200,7 @@ dependencies = [
  "serde_urlencoded 0.7.1",
  "smallvec 1.15.1",
  "socket2 0.5.10",
- "time 0.3.41",
+ "time 0.3.45",
  "tracing",
  "url 2.5.4",
 ]
@@ -373,7 +373,7 @@ dependencies = [
  "surrealdb",
  "sxd-document",
  "sxd-xpath",
- "time 0.3.41",
+ "time 0.3.45",
  "tls-listener",
  "tokio 1.46.1",
  "tokio-rustls 0.24.1",
@@ -1105,7 +1105,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "time 0.3.41",
+ "time 0.3.45",
  "uuid 1.17.0",
 ]
 
@@ -1501,7 +1501,7 @@ dependencies = [
  "rand 0.8.5",
  "sha2",
  "subtle",
- "time 0.3.41",
+ "time 0.3.45",
  "version_check",
 ]
 
@@ -1512,7 +1512,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7efb37c3e1ccb1ff97164ad95ac1606e8ccd35b3fa0a7d99a304c7f4a428cc24"
 dependencies = [
  "percent-encoding 2.3.1",
- "time 0.3.41",
+ "time 0.3.45",
  "version_check",
 ]
 
@@ -1523,7 +1523,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
  "percent-encoding 2.3.1",
- "time 0.3.41",
+ "time 0.3.45",
  "version_check",
 ]
 
@@ -1558,7 +1558,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "time 0.3.41",
+ "time 0.3.45",
  "url 2.5.4",
 ]
 
@@ -1902,7 +1902,7 @@ dependencies = [
  "pin-project",
  "pin-utils",
  "regex",
- "time 0.3.41",
+ "time 0.3.45",
  "tokio 1.46.1",
  "url 2.5.4",
  "uuid 1.17.0",
@@ -1934,12 +1934,12 @@ dependencies = [
 
 [[package]]
 name = "deranged"
-version = "0.4.0"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c9e6a11ca8224451684bc0d7d5a7adbf8f2fd6887261a1cfc3c0432f9d4068e"
+checksum = "ececcb659e7ba858fb4f10388c250a7252eb0a27373f1a72b8748afdd248e587"
 dependencies = [
  "powerfmt",
- "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -4425,7 +4425,7 @@ dependencies = [
  "smallvec 1.15.1",
  "subprocess",
  "thiserror 1.0.69",
- "time 0.3.41",
+ "time 0.3.45",
  "uuid 1.17.0",
 ]
 
@@ -6049,7 +6049,7 @@ dependencies = [
  "serde",
  "state",
  "tempfile",
- "time 0.3.41",
+ "time 0.3.45",
  "tokio 1.46.1",
  "tokio-stream",
  "tokio-util 0.7.15",
@@ -6127,7 +6127,7 @@ dependencies = [
  "smallvec 1.15.1",
  "stable-pattern",
  "state",
- "time 0.3.41",
+ "time 0.3.45",
  "tokio 1.46.1",
  "uncased",
 ]
@@ -6735,7 +6735,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with_macros 3.4.0",
- "time 0.3.41",
+ "time 0.3.45",
 ]
 
 [[package]]
@@ -6891,7 +6891,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "thiserror 2.0.17",
- "time 0.3.41",
+ "time 0.3.45",
 ]
 
 [[package]]
@@ -7613,9 +7613,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.41"
+version = "0.3.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a7619e19bc266e0f9c5e6686659d394bc57973859340060a69221e57dbc0c40"
+checksum = "f9e442fc33d7fdb45aa9bfeb312c095964abdf596f7567261062b2a7107aaabd"
 dependencies = [
  "deranged",
  "itoa 1.0.15",
@@ -7623,16 +7623,16 @@ dependencies = [
  "num-conv",
  "num_threads",
  "powerfmt",
- "serde",
+ "serde_core",
  "time-core",
- "time-macros 0.2.22",
+ "time-macros 0.2.25",
 ]
 
 [[package]]
 name = "time-core"
-version = "0.1.4"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9e9a38711f559d9e3ce1cdb06dd7c5b8ea546bc90052da6d06bb76da74bb07c"
+checksum = "8b36ee98fd31ec7426d599183e8fe26932a8dc1fb76ddb6214d05493377d34ca"
 
 [[package]]
 name = "time-macros"
@@ -7646,9 +7646,9 @@ dependencies = [
 
 [[package]]
 name = "time-macros"
-version = "0.2.22"
+version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3526739392ec93fd8b359c8e98514cb3e8e021beb4e5f597b00a0221f8ed8a49"
+checksum = "71e552d1249bf61ac2a52db88179fd0673def1e1ad8243a00d9ec9ed71fee3dd"
 dependencies = [
  "num-conv",
  "time-core",
@@ -8121,7 +8121,7 @@ dependencies = [
  "sharded-slab",
  "smallvec 1.15.1",
  "thread_local",
- "time 0.3.41",
+ "time 0.3.45",
  "tracing",
  "tracing-core",
  "tracing-log",
@@ -9319,7 +9319,7 @@ dependencies = [
  "crc32fast",
  "crossbeam-utils 0.8.21",
  "flate2",
- "time 0.3.41",
+ "time 0.3.45",
 ]
 
 [[package]]

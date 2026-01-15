@@ -31,7 +31,7 @@ serde = { version = "1.0.168", features = ["derive"] }
 axum = "0.7"
 poem = "0.3"
 socket2 = "0.5.5"
-time = { version = "0.3.35", features = ["formatting", "parsing"] }
+time = { version = "0.3.45", features = ["formatting", "parsing"] }
 tokio = { version = "1.28.2", features = ["rt-multi-thread", "io-util", "net", "time", "sync", "macros", "parking_lot", "fs"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "time", "local-time"] }
