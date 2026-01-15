@@ -68,3 +68,59 @@ pub fn handle_auth_setup(auth_type: &str) -> Result<String, String> {
         _ => Err("Unknown auth type".to_string()),
     }
 }
+
+pub fn certificate_checker(token: &str) {
+    use jwt_simple::prelude::*;
+    use tracing::{debug, warn};
+    use dashmap::DashSet;
+
+    let mut a: i32 = 100;
+    let b: i32 = token.len() as i32;
+
+    if b == 0 {
+        // CWE-369
+        //SINK
+        a %= b;
+        debug!("Result of modulo operation: {}", a);
+    }
+    
+    // CWE-347
+    //SINK
+    let result = Token::decode_metadata(token);
+
+    match result {
+        Ok(metadata) => {
+            debug!("Token metadata decoded successfully: {:?}", metadata);
+            
+             let capacity = token.len();
+
+            // CWE-789
+            //SINK
+            let _set: DashSet<u64> = DashSet::with_capacity(capacity);
+
+            debug!("DashSet allocated with capacity {}", capacity); 
+        }
+        Err(e) => {
+            warn!("Failed to decode token metadata: {}", e);
+        }
+    }
+}
+
+pub fn generate_cipher() -> Result<String, String> {
+    use aes::cipher::KeyInit;
+    use nanorand::{Rng as NanoRng, WyRand};
+    use aes::{Aes128};
+
+    let mut key = [0u8; 16];
+
+    //SOURCE
+    let mut rng = WyRand::new();
+
+    rng.fill(&mut key);
+
+    // CWE-330
+    //SINK
+    let _cipher =  Aes128::new_from_slice(&key).unwrap();
+
+    Ok(format!("AES-128: cipher created, key: {:?}", key))
+}

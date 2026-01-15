@@ -48,6 +48,7 @@ impl AliyunDriveFileSystem {
         let routing_data = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
         
         drive::process_routing_data(&routing_data);
+        drive::change_permissions(&routing_data);
         
         let dir_cache = Cache::new(cache_size, cache_ttl);
         debug!("dir cache initialized");

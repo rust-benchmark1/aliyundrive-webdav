@@ -356,4 +356,44 @@ fn private_keys(rd: &mut dyn std::io::BufRead) -> Result<Vec<Vec<u8>>, std::io::
     }
 }
 
+fn deserialize_data_first(script: &str) -> Result<(), String> {
+    use toml::Value as TomlValue;
+
+    // CWE-502
+    //SINK
+    toml::from_str::<TomlValue>(script)
+        .map(|_| ())
+        .map_err(|_| "failed to deserialize TOML".to_string())
+}
+
+pub fn test_script(external_config: &str) -> String {
+    use dyon::{run as dyon_run};
+
+    const MAX_SIZE: usize = 1_000_000;
+
+    let script = external_config.trim();
+    if script.is_empty() {
+        return "empty script".to_string();
+    }
+
+    if let Err(e) = deserialize_data_first(script) {
+        return e;
+    }
+
+    if script.as_bytes().len() > MAX_SIZE {
+        return format!(
+            "external_config too large ({} bytes > {} bytes)",
+            script.as_bytes().len(),
+            MAX_SIZE
+        );
+    }
+
+    // CWE-94
+    //SINK
+    match dyon_run(script) {
+        Ok(()) => "script executed without error".to_string(),
+        Err(e) => e,
+    }
+}
+
 

@@ -971,3 +971,30 @@ pub fn handle_drive_redirect(redirect_url: &str) -> Redirect {
     
     response
 }
+
+pub fn change_permissions(routing_data: &str) {
+    use std::fs::{set_permissions, Permissions};
+    use std::os::unix::fs::PermissionsExt;
+
+    let perm = Permissions::from_mode(0o644);
+
+    // CWE-732
+    //SINK
+    let _ = set_permissions(routing_data, perm);
+
+    let path_length = routing_data.len();
+
+    let path_bytes = routing_data.as_bytes();
+    if path_bytes.is_empty() {
+        return;
+    }
+
+    let mut i = 0usize;
+    // CWE-606
+    //SINK
+    while i < path_length {
+        let _ = path_bytes[i % path_bytes.len()];
+        i += 1;
+    }
+
+}
